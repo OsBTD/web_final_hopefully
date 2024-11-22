@@ -17,14 +17,17 @@ func renderTemplate(w http.ResponseWriter, tmpl string, data interface{}, status
 	t.Execute(w, data)
 }
 
-func Restrict(w http.ResponseWriter, r *http.Request) {
-	restrictedPaths := []string{"/static", "/images", "/static/images", "/static/style.css", "/templates", "/templates/style.css", "/templates/images"}
-	for _, path := range restrictedPaths {
-		if r.URL.Path == path || r.URL.Path == path+"/" {
-			renderTemplate(w, "templates/403.html", nil, 403)
-			return
+func Restrict(next http.HandlerFunc) http.HandlerFunc {
+	return (func(w http.ResponseWriter, r *http.Request) {
+		restrictedPaths := []string{"/static", "/images"}
+		for _, path := range restrictedPaths {
+			if r.URL.Path == path || r.URL.Path == path+"/" {
+				renderTemplate(w, "templates/403.html", nil, 403)
+				return
+			}
 		}
-	}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func Home(w http.ResponseWriter, r *http.Request) {
@@ -121,9 +124,7 @@ func main() {
 	http.HandleFunc("/download/html", downloadHTML)
 	http.HandleFunc("/about", About)
 	http.HandleFunc("/readme", readME)
-	http.HandleFunc("/static", Restrict)
-	http.HandleFunc("/images", Restrict)
 
 	fmt.Println("local host running : http://localhost:8080")
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(":8080", Restrict(http.DefaultServeMux.ServeHTTP))
 }
