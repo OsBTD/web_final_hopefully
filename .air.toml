@@ -1,0 +1,27 @@
+# .air.toml configuration file
+[build]
+  bin = "bin/main" # Output binary name
+  cmd = "go build -o ./bin/main ./cmd/main.go" # Build command
+  full_bin = "APP_ENV=dev ./bin/main" # Command to run the binary
+  exclude_dir = ["assets", "tmp"] # Directories to exclude from watching
+  exclude_file = ["go.sum"] # Files to exclude from watching
+
+[logger]
+  use_color = true # Enable color output in logs
+  use_proxy = false # Disable proxy
+
+[log]
+  [log.json]
+    enabled = true
+    time_format = "2006-01-02 15:04:05"
+  [log.console]
+    enabled = true
+    level = "debug"
+
+[watcher]
+  delay = 500 # Delay in milliseconds between file change detection and action
+  exclude = [] # Files or directories to exclude
+  include = ["**/*.go", "**/*.html", "**/*.css"] # Files or directories to include
+  color = true
+  filter_mode = "exclude"
+  app_log_color = "random"
