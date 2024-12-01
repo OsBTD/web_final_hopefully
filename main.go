@@ -13,7 +13,10 @@ import (
 
 func renderTemplate(w http.ResponseWriter, tmpl string, data interface{}, statuscode int) {
 	w.WriteHeader(statuscode)
-	t := template.Must(template.ParseFiles(tmpl))
+	t, err := template.ParseFiles(tmpl)
+	if err != nil {
+		fmt.Fprintf(w, "error parsing files")
+	}
 	t.Execute(w, data)
 }
 
@@ -21,7 +24,7 @@ func Restrict(w http.ResponseWriter, r *http.Request) {
 	restrictedPaths := []string{"/static", "/images"}
 	for _, path := range restrictedPaths {
 		if r.URL.Path == path || r.URL.Path == path+"/" {
-			renderTemplate(w, "templates/403.html", nil, 403)
+			renderTemplate(w, "templates/403.html", nil, http.StatusForbidden)
 			return
 		}
 	}
@@ -29,30 +32,38 @@ func Restrict(w http.ResponseWriter, r *http.Request) {
 
 func Home(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
-		renderTemplate(w, "templates/400.html", nil, 400)
+		renderTemplate(w, "templates/400.html", nil, http.StatusMethodNotAllowed)
 		return
 	}
 	if r.URL.Path != "/" {
-		renderTemplate(w, "templates/404.html", nil, 404)
+		renderTemplate(w, "templates/404.html", nil, http.StatusNotFound)
 		return
 	}
-	renderTemplate(w, "templates/index.html", nil, 200)
+	renderTemplate(w, "templates/index.html", nil, http.StatusOK)
 }
 
 func Ascii(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		renderTemplate(w, "templates/400.html", nil, 400)
+		renderTemplate(w, "templates/400.html", nil, http.StatusMethodNotAllowed)
 		return
 	}
 
 	input := r.FormValue("text")
 	style := r.FormValue("Style")
 	if style != "standard" && style != "thinkertoy" && style != "shadow" {
-		renderTemplate(w, "templates/400_invalidEntry.html", nil, 400)
+		renderTemplate(w, "templates/400_invalidEntry.html", nil, http.StatusBadRequest)
 		return
 	}
 
-	PrintArt, unprintable := ascii.PrintArt(input, style)
+	PrintArt, unprintable, x := ascii.PrintArt(input, style)
+	// print art is the ascii art
+	// unprintable is a boolean that's true when input contains unprintable chars
+	// x has the value of 420 when there's an error reading the files on the ascii code
+	if x == 420 {
+		renderTemplate(w, "templates/500.html", nil, http.StatusInternalServerError)
+		return
+	}
+
 	data := struct {
 		Output             string
 		UnprintableWarning bool
@@ -60,13 +71,13 @@ func Ascii(w http.ResponseWriter, r *http.Request) {
 		Output:             PrintArt,
 		UnprintableWarning: unprintable,
 	}
-	renderTemplate(w, "templates/index.html", data, 200)
+	renderTemplate(w, "templates/index.html", data, http.StatusOK)
 }
 
 func downloadText(w http.ResponseWriter, r *http.Request) {
 	output := r.FormValue("output")
 	if output == "" {
-		renderTemplate(w, "templates/500_NoContent.html", nil, 500)
+		renderTemplate(w, "templates/500_NoContent.html", nil, http.StatusInternalServerError)
 		return
 
 	}
@@ -75,7 +86,7 @@ func downloadText(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Length", strconv.Itoa(len(output)))
 	_, err := io.WriteString(w, output)
 	if err != nil {
-		renderTemplate(w, "templates/500.html", nil, 500)
+		renderTemplate(w, "templates/500.html", nil, http.StatusInternalServerError)
 		return
 
 	}
@@ -84,7 +95,7 @@ func downloadText(w http.ResponseWriter, r *http.Request) {
 func downloadHTML(w http.ResponseWriter, r *http.Request) {
 	output := r.FormValue("output")
 	if output == "" {
-		renderTemplate(w, "templates/500_NoContent.html", nil, 500)
+		renderTemplate(w, "templates/500_NoContent.html", nil, http.StatusInternalServerError)
 		return
 	}
 
@@ -94,18 +105,18 @@ func downloadHTML(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	_, err := io.WriteString(w, htmlContent)
 	if err != nil {
-		renderTemplate(w, "templates/500.html", nil, 500)
+		renderTemplate(w, "templates/500.html", nil, http.StatusInternalServerError)
 		return
 
 	}
 }
 
 func About(w http.ResponseWriter, r *http.Request) {
-	renderTemplate(w, "templates/About.html", nil, 200)
+	renderTemplate(w, "templates/About.html", nil, http.StatusOK)
 }
 
 func readME(w http.ResponseWriter, r *http.Request) {
-	renderTemplate(w, "templates/readme.html", nil, 200)
+	renderTemplate(w, "templates/readme.html", nil, http.StatusOK)
 }
 
 func main() {

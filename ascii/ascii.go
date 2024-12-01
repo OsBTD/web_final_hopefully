@@ -1,7 +1,6 @@
 package ascii
 
 import (
-	"log"
 	"os"
 	"strings"
 )
@@ -15,10 +14,11 @@ func Checknewline(inputsplit []string) bool {
 	return true
 }
 
-func PrintArt(input, banner string) (string, bool) {
+func PrintArt(input, banner string) (string, bool, int) {
+	var x int
 	content, err := os.ReadFile("banner/" + banner + ".txt")
 	if err != nil {
-		log.Fatal("Error : couldn't read file ", err)
+		x = 420
 	}
 	noreturn := strings.ReplaceAll(string(content), "\r", "")
 	Lines := strings.Split(noreturn, "\n")
@@ -61,7 +61,6 @@ func PrintArt(input, banner string) (string, bool) {
 						continue
 					} else {
 						result += Replace[char][i]
-
 					}
 				}
 				result += "\n"
@@ -70,5 +69,5 @@ func PrintArt(input, banner string) (string, bool) {
 		}
 	}
 
-	return result, unprintable
+	return result, unprintable, x
 }
