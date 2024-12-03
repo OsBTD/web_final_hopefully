@@ -21,7 +21,7 @@ func renderTemplate(w http.ResponseWriter, tmpl string, data interface{}, status
 }
 
 func Restrict(w http.ResponseWriter, r *http.Request) {
-	restrictedPaths := []string{"/static", "/images"}
+	restrictedPaths := []string{"/static", "/images", "static/images"}
 	for _, path := range restrictedPaths {
 		if r.URL.Path == path || r.URL.Path == path+"/" {
 			renderTemplate(w, "templates/403.html", nil, http.StatusForbidden)
@@ -45,6 +45,10 @@ func Home(w http.ResponseWriter, r *http.Request) {
 func Ascii(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		renderTemplate(w, "templates/400.html", nil, http.StatusMethodNotAllowed)
+		return
+	}
+	if r.URL.Path != "/ascii" {
+		renderTemplate(w, "templates/404.html", nil, http.StatusNotFound)
 		return
 	}
 
