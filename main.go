@@ -17,16 +17,22 @@ func renderTemplate(w http.ResponseWriter, tmpl string, data interface{}, status
 	if err != nil {
 		fmt.Fprintf(w, "error parsing files")
 	}
-	t.Execute(w, data)
+	err2 := t.Execute(w, data)
+	if err2 != nil {
+		renderTemplate(w, "templates/500.html", nil, http.StatusInternalServerError)
+	}
 }
 
-func Restrict(w http.ResponseWriter, r *http.Request) {
-	restrictedPaths := []string{"/static", "/images", "static/images"}
-	for _, path := range restrictedPaths {
-		if r.URL.Path == path || r.URL.Path == path+"/" {
-			renderTemplate(w, "templates/403.html", nil, http.StatusForbidden)
-			return
+func Restrict(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		restrictedPaths := []string{"/static", "/images", "/static/images"}
+		for _, path := range restrictedPaths {
+			if r.URL.Path == path || r.URL.Path == path+"/" {
+				renderTemplate(w, "templates/403.html", nil, http.StatusForbidden)
+				return
+			}
 		}
+		next.ServeHTTP(w, r)
 	}
 }
 
@@ -136,9 +142,7 @@ func main() {
 	http.HandleFunc("/download/html", downloadHTML)
 	http.HandleFunc("/about", About)
 	http.HandleFunc("/readme", readME)
-	http.HandleFunc("/static", Restrict)
-	http.HandleFunc("/images", Restrict)
 
 	fmt.Println("local host running : http://localhost:8080")
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(":8080", Restrict(http.DefaultServeMux.ServeHTTP))
 }
