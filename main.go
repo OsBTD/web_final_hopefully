@@ -5,8 +5,10 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"ascii-art-web/ascii"
 )
@@ -130,19 +132,35 @@ func readME(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	fs := http.FileServer(http.Dir("templates"))
-	http.Handle("/static/", http.StripPrefix("/static/", fs))
+	mux := http.NewServeMux()
 
-	imageFs := http.FileServer(http.Dir(filepath.Join("templates", "images")))
-	http.Handle("/images/", http.StripPrefix("/images/", imageFs))
+	mux.HandleFunc("/", Home)
+	mux.HandleFunc("/ascii", Ascii)
+	mux.HandleFunc("/download/txt", downloadText)
+	mux.HandleFunc("/download/html", downloadHTML)
+	mux.HandleFunc("/about", About)
+	mux.HandleFunc("/readme", readME)
 
-	http.HandleFunc("/", Home)
-	http.HandleFunc("/ascii", Ascii)
-	http.HandleFunc("/download/txt", downloadText)
-	http.HandleFunc("/download/html", downloadHTML)
-	http.HandleFunc("/about", About)
-	http.HandleFunc("/readme", readME)
+	staticHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := filepath.Join("templates", r.URL.Path)
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			renderTemplate(w, "templates/404.html", nil, http.StatusNotFound)
+			return
+		}
+		if strings.HasPrefix(r.URL.Path, "/static/") {
+			http.StripPrefix("/static/", http.FileServer(http.Dir("templates"))).ServeHTTP(w, r)
+			return
+		}
+
+		if strings.HasPrefix(r.URL.Path, "/images/") {
+			http.StripPrefix("/images/", http.FileServer(http.Dir(filepath.Join("templates", "images")))).ServeHTTP(w, r)
+			return
+		}
+	})
+
+	mux.Handle("/static/", staticHandler)
+	mux.Handle("/images/", staticHandler)
 
 	fmt.Println("local host running : http://localhost:8080")
-	http.ListenAndServe(":8080", Restrict(http.DefaultServeMux.ServeHTTP))
+	http.ListenAndServe(":8080", Restrict(mux.ServeHTTP))
 }
