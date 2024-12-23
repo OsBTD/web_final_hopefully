@@ -5,7 +5,6 @@ import (
 	"html/template"
 	"io"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -13,18 +12,26 @@ import (
 	"ascii-art-web/ascii"
 )
 
+// renderTemplate is a helper function that parses and executes,
+// it takes 4 parameters, the responsewriter (interface), tmpl (string) which'll represent the file to parse,
+// data(interface) which is whatever we wanna execute on the templates, and statuscode (int) which is just the status code
 func renderTemplate(w http.ResponseWriter, tmpl string, data interface{}, statuscode int) {
 	w.WriteHeader(statuscode)
 	t, err := template.ParseFiles(tmpl)
 	if err != nil {
 		fmt.Fprintf(w, "error parsing files")
+		return
 	}
 	err2 := t.Execute(w, data)
 	if err2 != nil {
 		renderTemplate(w, "templates/500.html", nil, http.StatusInternalServerError)
+		return
 	}
 }
 
+// restrict is a middleware that restricts access to specific paths, /static and /images in this case
+// it takes a next(handlerfunc) and returns an http handler function that checks if our path is one of the restricted ones if so the file to parse and execute would be the 403 template and status is 403 forbidden
+// if the path doesn't figure in our restricted ones the handlerfunc is returned the usual way and the file to be parsed and executed would be determined
 func Restrict(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		restrictedPaths := []string{"/static", "/images", "/static/images"}
@@ -131,6 +138,34 @@ func readME(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "templates/readme.html", nil, http.StatusOK)
 }
 
+// customFileServer wraps the http.FileServer and intercepts 404 errors to serve a custom 404 page
+func customFileServer(root http.FileSystem) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check if the file exists
+		path := r.URL.Path
+		if !strings.HasPrefix(path, "/") {
+			path = "/" + path
+			r.URL.Path = path
+		}
+		f, err := root.Open(path)
+		if err != nil {
+			// If the file doesn't exist, serve the custom 404 page
+			renderTemplate(w, "templates/404.html", nil, http.StatusNotFound)
+			return
+		}
+		defer f.Close()
+
+		// Serve the file
+		info, err := f.Stat()
+		if err != nil || info.IsDir() {
+			// If it's a directory, serve the custom 404 page
+			renderTemplate(w, "templates/404.html", nil, http.StatusNotFound)
+			return
+		}
+		http.ServeContent(w, r, info.Name(), info.ModTime(), f)
+	})
+}
+
 func main() {
 	mux := http.NewServeMux()
 
@@ -141,25 +176,10 @@ func main() {
 	mux.HandleFunc("/about", About)
 	mux.HandleFunc("/readme", readME)
 
-	staticHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		path := filepath.Join("templates", r.URL.Path)
-		if _, err := os.Stat(path); os.IsNotExist(err) {
-			renderTemplate(w, "templates/404.html", nil, http.StatusNotFound)
-			return
-		}
-		if strings.HasPrefix(r.URL.Path, "/static/") {
-			http.StripPrefix("/static/", http.FileServer(http.Dir("templates"))).ServeHTTP(w, r)
-			return
-		}
-
-		if strings.HasPrefix(r.URL.Path, "/images/") {
-			http.StripPrefix("/images/", http.FileServer(http.Dir(filepath.Join("templates", "images")))).ServeHTTP(w, r)
-			return
-		}
-	})
-
-	mux.Handle("/static/", staticHandler)
-	mux.Handle("/images/", staticHandler)
+	// Use the custom file server for static files
+	staticFileServer := customFileServer(http.Dir("templates"))
+	mux.Handle("/static/", http.StripPrefix("/static/", staticFileServer))
+	mux.Handle("/images/", http.StripPrefix("/images/", customFileServer(http.Dir(filepath.Join("templates", "images")))))
 
 	fmt.Println("local host running : http://localhost:8080")
 	http.ListenAndServe(":8080", Restrict(mux.ServeHTTP))
