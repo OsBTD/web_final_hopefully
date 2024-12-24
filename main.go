@@ -5,9 +5,9 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	"ascii-art-web/ascii"
 )
@@ -138,31 +138,14 @@ func readME(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "templates/readme.html", nil, http.StatusOK)
 }
 
-// customFileServer wraps the http.FileServer and intercepts 404 errors to serve a custom 404 page
-func customFileServer(root http.FileSystem) http.Handler {
+func customFileServer(root string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check if the file exists
-		path := r.URL.Path
-		if !strings.HasPrefix(path, "/") {
-			path = "/" + path
-			r.URL.Path = path
-		}
-		f, err := root.Open(path)
-		if err != nil {
-			// If the file doesn't exist, serve the custom 404 page
+		path := filepath.Join(root, r.URL.Path)
+		if _, err := os.Stat(path); err != nil {
 			renderTemplate(w, "templates/404.html", nil, http.StatusNotFound)
 			return
 		}
-		defer f.Close()
-
-		// Serve the file
-		info, err := f.Stat()
-		if err != nil || info.IsDir() {
-			// If it's a directory, serve the custom 404 page
-			renderTemplate(w, "templates/404.html", nil, http.StatusNotFound)
-			return
-		}
-		http.ServeContent(w, r, info.Name(), info.ModTime(), f)
+		http.ServeFile(w, r, path)
 	})
 }
 
@@ -176,11 +159,9 @@ func main() {
 	mux.HandleFunc("/about", About)
 	mux.HandleFunc("/readme", readME)
 
-	// Use the custom file server for static files
-	staticFileServer := customFileServer(http.Dir("templates"))
-	mux.Handle("/static/", http.StripPrefix("/static/", staticFileServer))
-	mux.Handle("/images/", http.StripPrefix("/images/", customFileServer(http.Dir(filepath.Join("templates", "images")))))
+	mux.Handle("/static/", http.StripPrefix("/static/", customFileServer("templates")))
+	mux.Handle("/images/", http.StripPrefix("/images/", customFileServer(filepath.Join("templates", "images"))))
 
-	fmt.Println("local host running : http://localhost:8080")
-	http.ListenAndServe(":8080", Restrict(mux.ServeHTTP))
+	fmt.Println("local host running : http://localhost:8089")
+	http.ListenAndServe(":8089", Restrict(mux.ServeHTTP))
 }
