@@ -495,7 +495,7 @@ a:hover {
     }
 }
 
-@media(max-width: 350px) {
+@media(max-width: 390px) {
 
     .Template_Container {
         transform: scale(0.4);
