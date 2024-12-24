@@ -168,18 +168,17 @@ func customFileServer(root string) http.Handler {
 
 func main() {
 	// initialize the servemux multiplexer with NewServeMux so we can wrapp it in the restrict function afterwards
-	mux := http.NewServeMux()
 	// handle the handler functions
 	// we're using mux.HandleFunc because http.HandleFunc would automatically use the DefaultServeMux
 	// HandleFunc implecitely converts these functions to handler functions
 	// it's as if we wrote it like mux.HandleFunc("path", http.HandlerFunc(Function))
 	// the handlerfunc part is where the ServeHttp method is applied
-	mux.HandleFunc("/", Home)
-	mux.HandleFunc("/ascii", Ascii)
-	mux.HandleFunc("/download/txt", downloadText)
-	mux.HandleFunc("/download/html", downloadHTML)
-	mux.HandleFunc("/about", About)
-	mux.HandleFunc("/readme", readME)
+	http.HandleFunc("/", Home)
+	http.HandleFunc("/ascii", Ascii)
+	http.HandleFunc("/download/txt", downloadText)
+	http.HandleFunc("/download/html", downloadHTML)
+	http.HandleFunc("/about", About)
+	http.HandleFunc("/readme", readME)
 	// these are the file handlers for images and the css file
 	// they use the custome handler which checks if a file exists
 	// if not it returns a custom error page
@@ -187,10 +186,10 @@ func main() {
 	// we strip the static prefix, it doesn't exist in our filesystem it's just how we server the static files on the html
 	// we use mux.Handle here cause customeServer returns a Handler
 
-	mux.Handle("/static/", http.StripPrefix("/static/", customFileServer("templates")))
-	mux.Handle("/images/", customFileServer("templates"))
+	http.Handle("/static/", http.StripPrefix("/static/", customFileServer("templates")))
+	http.Handle("/images/", customFileServer("templates"))
 	// we give the mux.ServeHTTP as a parameter to the restrict middleware function
 	// it would check if a path is restricted before going to treating it with the mux
-	fmt.Println("local host running : http://localhost:8083")
-	http.ListenAndServe(":8083", Restrict(mux.ServeHTTP))
+	fmt.Println("local host running : http://localhost:8082")
+	http.ListenAndServe(":8082", Restrict(http.DefaultServeMux.ServeHTTP))
 }
