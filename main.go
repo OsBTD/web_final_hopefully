@@ -41,7 +41,7 @@ func Restrict(next http.HandlerFunc) http.HandlerFunc {
 				return
 			}
 		}
-		next.ServeHTTP(w, r)
+		next(w, r)
 	}
 }
 
@@ -132,10 +132,26 @@ func downloadHTML(w http.ResponseWriter, r *http.Request) {
 }
 
 func About(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		renderTemplate(w, "templates/400.html", nil, http.StatusMethodNotAllowed)
+		return
+	}
+	if r.URL.Path != "/about" {
+		renderTemplate(w, "templates/404.html", nil, http.StatusNotFound)
+		return
+	}
 	renderTemplate(w, "templates/About.html", nil, http.StatusOK)
 }
 
 func readME(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		renderTemplate(w, "templates/400.html", nil, http.StatusMethodNotAllowed)
+		return
+	}
+	if r.URL.Path != "/readme" {
+		renderTemplate(w, "templates/404.html", nil, http.StatusNotFound)
+		return
+	}
 	renderTemplate(w, "templates/readme.html", nil, http.StatusOK)
 }
 
@@ -181,8 +197,8 @@ func main() {
 
 	mux.Handle("/static/", http.StripPrefix("/static/", customFileServer("templates")))
 	mux.Handle("/images/", customFileServer("templates"))
-	// we give the mux.ServeHTTP as a parameter to the restrict function
+	// we give the mux.ServeHTTP as a parameter to the restrict middleware function
 	// it would check if a path is restricted before going to treating it with the mux
-	fmt.Println("local host running : http://localhost:8088")
-	http.ListenAndServe(":8088", Restrict(mux.ServeHTTP))
+	fmt.Println("local host running : http://localhost:8083")
+	http.ListenAndServe(":8083", Restrict(mux.ServeHTTP))
 }
