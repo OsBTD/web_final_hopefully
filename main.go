@@ -132,10 +132,6 @@ func downloadHTML(w http.ResponseWriter, r *http.Request) {
 }
 
 func About(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		renderTemplate(w, "templates/400.html", nil, http.StatusMethodNotAllowed)
-		return
-	}
 	if r.URL.Path != "/about" {
 		renderTemplate(w, "templates/404.html", nil, http.StatusNotFound)
 		return
@@ -144,10 +140,6 @@ func About(w http.ResponseWriter, r *http.Request) {
 }
 
 func readME(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		renderTemplate(w, "templates/400.html", nil, http.StatusMethodNotAllowed)
-		return
-	}
 	if r.URL.Path != "/readme" {
 		renderTemplate(w, "templates/404.html", nil, http.StatusNotFound)
 		return
