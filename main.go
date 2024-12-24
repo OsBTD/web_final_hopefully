@@ -78,6 +78,7 @@ func Ascii(w http.ResponseWriter, r *http.Request) {
 	// print art is the ascii art
 	// unprintable is a boolean that's true when input contains unprintable chars
 	// x has the value of 420 when there's an error reading the files on the ascii code
+	// the data struct contains the boolean and the ascii art which is what would be executed
 	if x == 420 {
 		renderTemplate(w, "templates/500.html", nil, http.StatusInternalServerError)
 		return
@@ -138,6 +139,14 @@ func readME(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "templates/readme.html", nil, http.StatusOK)
 }
 
+// this custom file sever allows to customize the errors in file serving
+// for example if a file we're trying to serve doesn't exist or if we don't have the necessary permissions
+// otherwise if a file doesn't exist for example a standard 404 error would be displayed
+// it takes the root as parameter and returns a handler
+// it uses os.Stat which returns meta data about a file on our os system
+// and returns an error which could be of two type
+// either the file doesn't exist or permissions denied
+// we're using serve file instead of fileserver cause it only serves one file instead of a whole directory
 func customFileServer(root string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := filepath.Join(root, r.URL.Path)
@@ -150,18 +159,30 @@ func customFileServer(root string) http.Handler {
 }
 
 func main() {
+	// initialize the servemux multiplexer with NewServeMux so we can wrapp it in the restrict function afterwards
 	mux := http.NewServeMux()
-
+	// handle the handler functions
+	// we're using mux.HandleFunc because http.HandleFunc would automatically use the DefaultServeMux
+	// HandleFunc implecitely converts these functions to handler functions
+	// it's as if we wrote it like mux.HandleFunc("path", http.HandlerFunc(Function))
+	// the handlerfunc part is where the ServeHttp method is applied
 	mux.HandleFunc("/", Home)
 	mux.HandleFunc("/ascii", Ascii)
 	mux.HandleFunc("/download/txt", downloadText)
 	mux.HandleFunc("/download/html", downloadHTML)
 	mux.HandleFunc("/about", About)
 	mux.HandleFunc("/readme", readME)
+	// these are the file handlers for images and the css file
+	// they use the custome handler which checks if a file exists
+	// if not it returns a custom error page
+	// we give it the root as a parameter (templates)
+	// we strip the static prefix, it doesn't exist in our filesystem it's just how we server the static files on the html
+	// we use mux.Handle here cause customeServer returns a Handler
 
 	mux.Handle("/static/", http.StripPrefix("/static/", customFileServer("templates")))
 	mux.Handle("/images/", customFileServer("templates"))
-
+	// we give the mux.ServeHTTP as a parameter to the restrict function
+	// it would check if a path is restricted before going to treating it with the mux
 	fmt.Println("local host running : http://localhost:8088")
 	http.ListenAndServe(":8088", Restrict(mux.ServeHTTP))
 }
