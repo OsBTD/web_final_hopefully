@@ -160,7 +160,7 @@ func main() {
 	mux.HandleFunc("/readme", readME)
 
 	mux.Handle("/static/", http.StripPrefix("/static/", customFileServer("templates")))
-	mux.Handle("/images/", http.StripPrefix("/images/", customFileServer(filepath.Join("templates", "images"))))
+	mux.Handle("/images/", customFileServer("templates"))
 
 	fmt.Println("local host running : http://localhost:8088")
 	http.ListenAndServe(":8088", Restrict(mux.ServeHTTP))
