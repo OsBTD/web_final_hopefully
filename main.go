@@ -190,6 +190,6 @@ func main() {
 	http.Handle("/images/", customFileServer("templates"))
 	// we give the mux.ServeHTTP as a parameter to the restrict middleware function
 	// it would check if a path is restricted before going to treating it with the mux
-	fmt.Println("local host running : http://localhost:8082")
-	http.ListenAndServe(":8082", Restrict(http.DefaultServeMux.ServeHTTP))
+	fmt.Println("local host running : http://localhost:8080")
+	http.ListenAndServe(":8080", Restrict(http.DefaultServeMux.ServeHTTP))
 }
