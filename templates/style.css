@@ -345,12 +345,46 @@ a:hover {
     /* thumb and track color */
 }
 
-.Text {
+.About-Text,
+.Readme-Text {
+    font-family: 'Inconsolata', monospace;
     font-size: 20px;
     justify-content: center;
     align-items: center;
     color: white;
-    background-color: #000000b9;
+    max-width: 800px;
+    margin: 30px auto;
+    padding: 20px;
+    background-color: rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+.Title {
+    font-size: 30px;
+    text-align: center;
+    margin: 20px 0;
+}
+
+p {
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.Title2 {
+    font-size: 23px;
+    font-weight: bold;
+    margin-top: 20px;
+}
+
+pre,
+code {
+    font-size: 16px;
+    background-color: #22222293;
+    padding: 5px;
+    border-radius: 5px;
+    display: block;
+    overflow-x: auto;
 }
 
 /* Media Queries */
@@ -396,7 +430,7 @@ a:hover {
 }
 
 @media (max-width: 1200px) {
-    .Banner .Banner1 {
+    .Banner .Banner1 Title {
         transform: scale(0.5);
     }
 
@@ -412,7 +446,7 @@ a:hover {
         transform: scale(0.6);
     }
 
-    .Banner .Banner1 {
+    .Banner .Banner1 Title {
         transform: scale(0.6);
     }
 
@@ -490,7 +524,7 @@ a:hover {
         transform: scale(0.49);
     }
 
-    .Banner .Banner1 {
+    .Banner .Banner1 Title {
         padding-left: -200px;
     }
 }
@@ -509,7 +543,7 @@ a:hover {
         transform: scale(0.5);
     }
 
-    .Banner .Banner1 {
+    .Banner .Banner1 Title {
         transform: scale(0.5);
     }
 }
